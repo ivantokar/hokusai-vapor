@@ -36,7 +36,7 @@ Add to your `Package.swift`:
 ```swift
 dependencies: [
     .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
-    .package(url: "https://github.com/yourusername/hokusai-vapor.git", from: "1.0.0")
+    .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "1.0.0")
 ]
 
 targets: [
@@ -541,13 +541,14 @@ RUN ln -s /usr/lib/$(uname -m)-linux-gnu/pkgconfig/MagickWand-6.Q16.pc \
 
 ## Examples
 
-See the [vapor-vips demo app](../vapor-vips) for a complete working example with:
-- Certificate generation
+See the [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) demo app for a complete working example with:
+- Interactive web UI for testing features
+- Certificate generation with custom fonts
 - Image metadata extraction
-- Format conversion
-- Text overlay
-- Resize operations
-- Docker deployment
+- Format conversion (JPEG, PNG, WebP, AVIF, GIF)
+- Text overlay with stroke effects
+- Resize and rotate operations
+- Docker deployment with PostgreSQL
 
 ## Contributing
 
@@ -559,5 +560,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Related Projects
 
-- [Hokusai](../hokusai) - Core hybrid image processing library
-- [vips-kit](../vips-kit) - Pure libvips Swift wrapper
+- [Hokusai](https://github.com/ivantokar/hokusai) - Core hybrid image processing library
+- [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) - Complete demo app with web UI
