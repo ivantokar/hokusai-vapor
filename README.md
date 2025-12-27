@@ -548,7 +548,7 @@ See the [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-examp
 - Format conversion (JPEG, PNG, WebP, AVIF, GIF)
 - Text overlay with stroke effects
 - Resize and rotate operations
-- Docker deployment with PostgreSQL
+- Docker deployment
 
 ## Contributing
 
