@@ -14,7 +14,9 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
-        .package(path: "../hokusai"),
+        // 🎨 Hokusai core library (use SSH URL for private repos)
+        // For local development: .package(path: "../hokusai")
+        .package(url: "git@github.com:ivantokar/hokusai.git", branch: "main"),
     ],
     targets: [
         .target(
