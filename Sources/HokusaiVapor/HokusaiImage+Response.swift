@@ -18,10 +18,12 @@ extension HokusaiImage {
         compression: Int? = nil,
         status: HTTPStatus = .ok
     ) throws -> Response {
-        let data = try toBuffer(format: format, quality: quality)
+        let formatLowercased = format.lowercased()
+        let targetQuality = formatLowercased == "png" ? (compression ?? quality) : quality
+        let data = try toBuffer(format: format, quality: targetQuality)
 
         // Map format to mime type
-        let mimeType = getMimeType(for: format)
+        let mimeType = getMimeType(for: formatLowercased)
 
         return Response(
             status: status,

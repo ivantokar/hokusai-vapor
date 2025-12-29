@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
@@ -14,9 +14,9 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
-        // 🎨 Hokusai core library (use SSH URL for private repos)
-        // For local development: .package(path: "../hokusai")
-        .package(url: "git@github.com:ivantokar/hokusai.git", branch: "main"),
+        .package(url: "https://github.com/apple/swift-testing.git", from: "0.7.0"),
+        // Hokusai core library
+        .package(url: "https://github.com/ivantokar/hokusai.git", from: "0.1.0"),
     ],
     targets: [
         .target(
@@ -28,7 +28,10 @@ let package = Package(
         ),
         .testTarget(
             name: "HokusaiVaporTests",
-            dependencies: ["HokusaiVapor"]
+            dependencies: [
+                "HokusaiVapor",
+                .product(name: "Testing", package: "swift-testing"),
+            ]
         ),
     ]
 )

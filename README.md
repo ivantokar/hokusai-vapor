@@ -1,18 +1,18 @@
 # Hokusai Vapor
 
-Vapor framework integration for [Hokusai](../hokusai), providing seamless image processing capabilities in your Vapor applications.
+Vapor framework integration for [Hokusai](https://github.com/ivantokar/hokusai), providing seamless image processing capabilities in your Vapor applications.
 
-[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Vapor](https://img.shields.io/badge/Vapor-4.0+-blue.svg)](https://vapor.codes)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20|%20Linux-lightgrey.svg)](https://swift.org)
 
 ## Features
 
-- 🚀 **Request Extensions** - Load images directly from request body or multipart form data
-- 📤 **Response Conversion** - Convert `HokusaiImage` to Vapor `Response` with proper MIME types
-- ⚙️ **Lifecycle Management** - Automatic initialization and shutdown with Vapor's lifecycle
-- 🛣️ **Pre-built Routes** - Ready-to-use route handlers for common image operations
-- 🐳 **Docker Ready** - Full Docker support with ImageMagick and libvips
+- **Request Extensions** - Load images directly from request body or multipart form data
+- **Response Conversion** - Convert `HokusaiImage` to Vapor `Response` with proper MIME types
+- **Lifecycle Management** - Automatic initialization and shutdown with Vapor's lifecycle
+- **Pre-built Routes** - Ready-to-use route handlers for common image operations
+- **Docker Ready** - Full Docker support with ImageMagick and libvips
 
 ## Installation
 
@@ -36,7 +36,7 @@ Add to your `Package.swift`:
 ```swift
 dependencies: [
     .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
-    .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "1.0.0")
+    .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "0.1.0")
 ]
 
 targets: [
@@ -186,6 +186,9 @@ extension HokusaiImage {
 - `gif` - GIF
 - `tiff` / `tif` - TIFF
 
+PNG uses `compression` (0-9). If you pass both `quality` and `compression`, PNG will use `compression`.
+AVIF/HEIF output requires libvips built with libheif support.
+
 **Examples:**
 ```swift
 // JPEG with custom quality
@@ -280,23 +283,83 @@ app.post("thumbnail") { req async throws -> Response in
 }
 ```
 
-### Certificate Generation Example
+### Composite / Watermark Route
 
 ```swift
-struct CertificateController: RouteCollection {
+app.post("watermark") { req async throws -> Response in
+    let base = try await req.hokusaiImage()
+    let overlay = try await Hokusai.image(from: "Assets/logo.png")
+
+    let options = CompositeOptions(mode: .over, opacity: 0.7)
+    let composited = try base.composite(
+        overlay: overlay,
+        x: 20,
+        y: 20,
+        options: options
+    )
+
+    return try composited.response(format: "png", compression: 9)
+}
+```
+
+### Store Output in Amazon S3
+
+Add AWS SDK for Swift to your `Package.swift`:
+
+```swift
+.package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.0.0")
+```
+
+```swift
+.product(name: "AWSS3", package: "aws-sdk-swift")
+```
+
+Route example:
+
+```swift
+import AWSClientRuntime
+import AWSS3
+
+app.post("upload") { req async throws -> Response in
+    let image = try await req.hokusaiImage()
+    let data = try image.toBuffer(format: "jpeg", quality: 85)
+
+    let config = try await S3Client.S3ClientConfiguration(region: "us-east-1")
+    let client = S3Client(config: config)
+    defer {
+        Task { try? await client.shutdown() }
+    }
+
+    let key = "uploads/\(UUID().uuidString).jpg"
+    let request = PutObjectInput(
+        body: .data(data),
+        bucket: "my-bucket",
+        key: key,
+        contentType: "image/jpeg"
+    )
+
+    _ = try await client.putObject(input: request)
+    return Response(status: .ok, body: .init(string: key))
+}
+```
+
+### Template Text Example
+
+```swift
+struct TemplateTextController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        routes.post("generate", use: generate)
+        routes.post("template-text", use: generate)
     }
 
     func generate(req: Request) async throws -> Response {
         struct Query: Content {
-            let name: String
+            let text: String
         }
 
         let params = try req.query.decode(Query.self)
 
-        // Load certificate template
-        let cert = try await Hokusai.image(from: "/path/to/template.png")
+        // Load template image
+        let templateImage = try await Hokusai.image(from: "/path/to/template.png")
 
         // Configure custom font
         var textOptions = TextOptions()
@@ -306,12 +369,12 @@ struct CertificateController: RouteCollection {
         textOptions.strokeColor = [255, 255, 255, 255]
         textOptions.strokeWidth = 2.0
 
-        // Add name to certificate
-        let width = try cert.width
-        let height = try cert.height
+        // Add text to template image
+        let width = try templateImage.width
+        let height = try templateImage.height
 
-        let withText = try cert.drawText(
-            params.name,
+        let withText = try templateImage.drawText(
+            params.text,
             x: width / 2,
             y: Int(Double(height) * 0.6),
             options: textOptions
@@ -322,13 +385,13 @@ struct CertificateController: RouteCollection {
 }
 
 // Register in routes
-try app.register(collection: CertificateController())
+try app.register(collection: TemplateTextController())
 ```
 
 **Test:**
 ```bash
-curl -X POST "http://localhost:8080/generate?name=John%20Doe" \
-  -o certificate.png
+curl -X POST "http://localhost:8080/template-text?text=Hello%20World" \
+  -o template-text.png
 ```
 
 ### Metadata Endpoint
@@ -539,20 +602,68 @@ RUN ln -s /usr/lib/$(uname -m)-linux-gnu/pkgconfig/MagickWand-6.Q16.pc \
           /usr/lib/$(uname -m)-linux-gnu/pkgconfig/MagickWand.pc
 ```
 
+## iOS Client Example
+
+This example calls a HokusaiVapor server's pre-built `/api/images/convert` route with a raw image body:
+
+```swift
+import UIKit
+
+func convertToWebP(_ image: UIImage, baseURL: URL) async throws -> UIImage {
+    guard let data = image.jpegData(compressionQuality: 0.9) else {
+        throw URLError(.cannotDecodeRawData)
+    }
+
+    var components = URLComponents(
+        url: baseURL.appendingPathComponent("api/images/convert"),
+        resolvingAgainstBaseURL: false
+    )
+    components?.queryItems = [
+        URLQueryItem(name: "format", value: "webp"),
+        URLQueryItem(name: "quality", value: "80")
+    ]
+
+    guard let url = components?.url else {
+        throw URLError(.badURL)
+    }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+    request.httpBody = data
+
+    let (responseData, _) = try await URLSession.shared.data(for: request)
+    guard let processed = UIImage(data: responseData) else {
+        throw URLError(.cannotDecodeRawData)
+    }
+
+    return processed
+}
+```
+
 ## Examples
 
 See the [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) demo app for a complete working example with:
 - Interactive web UI for testing features
-- Certificate generation with custom fonts
+- Template text drawing with custom fonts
 - Image metadata extraction
 - Format conversion (JPEG, PNG, WebP, AVIF, GIF)
 - Text overlay with stroke effects
 - Resize and rotate operations
 - Docker deployment
 
+## Testing
+
+```bash
+swift test
+```
+
+Tests use Swift Testing (Swift 6+).
+If your Swift 6 toolchain does not ship the `Testing` module yet, keep the `swift-testing` package dependency.
+
 ## Contributing
 
-Contributions welcome! Please see the main [Hokusai](../hokusai) repository.
+Contributions welcome! Please see the main [Hokusai](https://github.com/ivantokar/hokusai) repository.
 
 ## License
 
