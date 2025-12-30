@@ -1,6 +1,8 @@
 # Hokusai Vapor
 
-Vapor framework integration for [Hokusai](https://github.com/ivantokar/hokusai), providing seamless image processing capabilities in your Vapor applications.
+**Seamless image processing integration for Vapor applications**
+
+Hokusai Vapor provides native Vapor framework integration for the [Hokusai](https://github.com/ivantokar/hokusai) image processing library. Process uploaded images, generate dynamic graphics, and build image APIs with minimal boilerplate.
 
 [![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Vapor](https://img.shields.io/badge/Vapor-4.0+-blue.svg)](https://vapor.codes)
@@ -8,11 +10,40 @@ Vapor framework integration for [Hokusai](https://github.com/ivantokar/hokusai),
 
 ## Features
 
-- **Request Extensions** - Load images directly from request body or multipart form data
-- **Response Conversion** - Convert `HokusaiImage` to Vapor `Response` with proper MIME types
-- **Lifecycle Management** - Automatic initialization and shutdown with Vapor's lifecycle
-- **Pre-built Routes** - Ready-to-use route handlers for common image operations
-- **Docker Ready** - Full Docker support with ImageMagick and libvips
+- 🔌 **Drop-in Integration** - Extends Vapor's `Application` and `Request` with image processing capabilities
+- 📤 **Request Helpers** - Load images directly from multipart uploads or request body
+- 📥 **Response Conversion** - Automatic conversion to Vapor `Response` with proper content types
+- 🛤️ **Pre-built Routes** - Optional ready-to-use endpoints for common operations
+- ⚙️ **Lifecycle Management** - Automatic initialization and cleanup of libvips/ImageMagick
+- 🔒 **Error Handling** - Vapor-native error responses with proper HTTP status codes
+
+## Quick Example
+
+```swift
+import Vapor
+import HokusaiVapor
+
+func configure(_ app: Application) throws {
+    // Initialize Hokusai
+    try app.hokusai.configure()
+}
+
+func routes(_ app: Application) throws {
+    // Load image from request, resize, return as response
+    app.post("resize") { req async throws -> Response in
+        let image = try await req.hokusaiImage()
+        let resized = try image.resize(width: 800, height: 600)
+        return try resized.response(format: .jpeg, quality: 85)
+    }
+}
+```
+
+## Perfect For
+
+- RESTful image processing APIs
+- User avatar/profile picture handling
+- Dynamic social media card generation
+- File upload preprocessing pipelines
 
 ## Installation
 
