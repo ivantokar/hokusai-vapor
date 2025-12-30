@@ -10,12 +10,12 @@ Hokusai Vapor provides native Vapor framework integration for the [Hokusai](http
 
 ## Features
 
-- 🔌 **Drop-in Integration** - Extends Vapor's `Application` and `Request` with image processing capabilities
-- 📤 **Request Helpers** - Load images directly from multipart uploads or request body
-- 📥 **Response Conversion** - Automatic conversion to Vapor `Response` with proper content types
-- 🛤️ **Pre-built Routes** - Optional ready-to-use endpoints for common operations
-- ⚙️ **Lifecycle Management** - Automatic initialization and cleanup of libvips/ImageMagick
-- 🔒 **Error Handling** - Vapor-native error responses with proper HTTP status codes
+- **Drop-in Integration** - Extends Vapor's `Application` and `Request` with image processing capabilities
+- **Request Helpers** - Load images directly from multipart uploads or request body
+- **Response Conversion** - Automatic conversion to Vapor `Response` with proper content types
+- **Pre-built Routes** - Optional ready-to-use endpoints for common operations
+- **Lifecycle Management** - Automatic initialization and cleanup of libvips/ImageMagick
+- **Error Handling** - Vapor-native error responses with proper HTTP status codes
 
 ## Quick Example
 
