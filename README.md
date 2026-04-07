@@ -1,3 +1,7 @@
+<p align="center">
+<img src="./hokusai-vapor-logo.png" alt="" width="200">
+</p>
+
 # Hokusai Vapor
 
 **Seamless image processing integration for Vapor applications**
