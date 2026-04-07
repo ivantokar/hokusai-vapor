@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./hokusai-vapor-logo.png" alt="" width="200">
+<img src="./hokusai-vapor-logo.png" alt="" width="100%">
 </p>
 
 # Hokusai Vapor
