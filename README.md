@@ -49,6 +49,11 @@ func routes(_ app: Application) throws {
 - Dynamic social media card generation
 - File upload preprocessing pipelines
 
+## Related Projects
+
+- [Hokusai](https://github.com/ivantokar/hokusai) - Core libvips-powered image processing library
+- [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) - Complete demo app with web UI
+
 ## Installation
 
 ### Requirements
@@ -704,8 +709,3 @@ Contributions welcome! Please see the main [Hokusai](https://github.com/ivantoka
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
-## Related Projects
-
-- [Hokusai](https://github.com/ivantokar/hokusai) - Core libvips-powered image processing library
-- [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) - Complete demo app with web UI
