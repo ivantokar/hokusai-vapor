@@ -18,7 +18,7 @@ Hokusai Vapor provides native Vapor framework integration for the [Hokusai](http
 - **Request Helpers** - Load images directly from multipart uploads or request body
 - **Response Conversion** - Automatic conversion to Vapor `Response` with proper content types
 - **Pre-built Routes** - Optional ready-to-use endpoints for common operations
-- **Lifecycle Management** - Automatic initialization and cleanup of libvips/ImageMagick
+- **Lifecycle Management** - Automatic initialization and cleanup of libvips
 - **Error Handling** - Vapor-native error responses with proper HTTP status codes
 
 ## Quick Example
@@ -55,13 +55,13 @@ func routes(_ app: Application) throws {
 
 **macOS:**
 ```bash
-brew install vips imagemagick pkg-config
+brew install vips pkg-config
 ```
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt update
-sudo apt install libvips-dev libmagick++-dev libmagickwand-dev pkg-config
+sudo apt install libvips-dev pkg-config
 ```
 
 ### Swift Package Manager
@@ -71,7 +71,7 @@ Add to your `Package.swift`:
 ```swift
 dependencies: [
     .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
-    .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "0.1.0")
+    .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "0.2.0")
 ]
 
 targets: [
@@ -154,7 +154,6 @@ try app.hokusai.configure()
 
 // Access version info
 print(app.hokusai.vipsVersion)    // "8.15.1"
-print(app.hokusai.magickVersion)  // "6.9.11-60"
 ```
 
 ### Request Extensions
@@ -465,13 +464,7 @@ FROM swift:6.1-noble AS build
 # Install dependencies
 RUN apt-get update && apt-get install -y \
     libvips-dev \
-    libmagick++-dev \
-    libmagickwand-dev \
     pkg-config
-
-# Create ImageMagick pkg-config symlink
-RUN ln -s /usr/lib/$(uname -m)-linux-gnu/pkgconfig/MagickWand-6.Q16.pc \
-          /usr/lib/$(uname -m)-linux-gnu/pkgconfig/MagickWand.pc
 
 # Copy source code
 WORKDIR /build
@@ -486,8 +479,6 @@ FROM swift:6.1-noble-slim
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     libvips \
-    libmagickcore-6.q16-7 \
-    libmagickwand-6.q16-7 \
     fonts-dejavu-core \
     fontconfig \
     && rm -rf /var/lib/apt/lists/*
@@ -628,15 +619,6 @@ Verify fonts are installed:
 docker exec -it container_name fc-list | grep YourFont
 ```
 
-### pkg-config Errors in Docker
-
-For Ubuntu/Debian, create the ImageMagick symlink:
-
-```dockerfile
-RUN ln -s /usr/lib/$(uname -m)-linux-gnu/pkgconfig/MagickWand-6.Q16.pc \
-          /usr/lib/$(uname -m)-linux-gnu/pkgconfig/MagickWand.pc
-```
-
 ## iOS Client Example
 
 This example calls a HokusaiVapor server's pre-built `/api/images/convert` route with a raw image body:
@@ -701,15 +683,16 @@ The package keeps a minimal `swift-testing` dependency to support toolchains whe
 
 Hokusai Vapor follows semantic version tags in the format `vX.Y.Z`.
 
-- Pull requests and pushes to `main` run CI on macOS and Linux.
-- Pushing a semantic version tag runs release validation and creates a **draft** GitHub Release with generated notes.
+- Releases are managed manually via semantic version tags (`vX.Y.Z`).
+- This repository intentionally does not run GitHub Actions workflows to reduce OSS costs.
+- Human-curated release notes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Swift Package Index
 
 This repository is structured to be compatible with Swift Package Index:
 
 - semantic version tags (`vX.Y.Z`)
-- CI coverage on macOS and Linux
+- local validation with `swift build` and `swift test`
 - clear installation/usage docs in this README
 
 Recommended next step when API docs grow: add a lightweight DocC catalog at `Sources/HokusaiVapor/HokusaiVapor.docc` and let SPI host the generated documentation.
@@ -724,5 +707,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Related Projects
 
-- [Hokusai](https://github.com/ivantokar/hokusai) - Core hybrid image processing library
+- [Hokusai](https://github.com/ivantokar/hokusai) - Core libvips-powered image processing library
 - [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) - Complete demo app with web UI

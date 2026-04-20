@@ -17,7 +17,7 @@ extension Application {
             application.lifecycle.use(HokusaiLifecycleHandler())
         }
 
-        /// Get Hokusai version (includes both libvips and ImageMagick)
+        /// Get Hokusai version
         public var version: String {
             Hokusai.version
         }
@@ -27,14 +27,16 @@ extension Application {
             Hokusai.vipsVersion
         }
 
-        /// Get ImageMagick version
+        /// Legacy ImageMagick version shim kept for API compatibility.
+        @available(*, deprecated, message: "ImageMagick backend was removed. Use vipsVersion instead.")
         public var magickVersion: String {
             Hokusai.magickVersion
         }
+
     }
 }
 
-/// Lifecycle handler to properly shutdown both backends
+/// Lifecycle handler to properly shutdown Hokusai backend
 struct HokusaiLifecycleHandler: LifecycleHandler {
     func shutdown(_ application: Application) {
         Hokusai.shutdown()
