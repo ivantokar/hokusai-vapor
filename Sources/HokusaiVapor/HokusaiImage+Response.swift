@@ -2,7 +2,14 @@ import Vapor
 import Hokusai
 
 extension HokusaiImage {
-    /// Convert image to Vapor Response
+    /// PURPOSE: Encode image and return a Vapor `Response`.
+    /// INPUT:
+    /// - `format`: output image format.
+    /// - `quality`/`compression`: encoder tuning values.
+    /// OUTPUT: HTTP response with binary image body + content type.
+    /// AI HINTS:
+    /// - Keep PNG compression compatibility behavior.
+    /// - Keep MIME mapping centralized in helper below.
     ///
     /// Example:
     /// ```swift

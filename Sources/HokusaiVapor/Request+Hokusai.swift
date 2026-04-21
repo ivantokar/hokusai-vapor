@@ -2,7 +2,10 @@ import Vapor
 import Hokusai
 
 extension Request {
-    /// Load a HokusaiImage from the request body
+    /// PURPOSE: Decode raw request body bytes into `HokusaiImage`.
+    /// INPUT: Body must contain encoded image bytes.
+    /// OUTPUT: Loaded image ready for processing.
+    /// CONSTRAINTS: Throws `400` for missing/invalid body payload.
     public func hokusaiImage() async throws -> HokusaiImage {
         guard let buffer = body.data else {
             throw Abort(.badRequest, reason: "No image data in request body")
@@ -14,7 +17,10 @@ extension Request {
         return try await Hokusai.image(from: data)
     }
 
-    /// Load a HokusaiImage from multipart form data
+    /// PURPOSE: Decode uploaded multipart file into `HokusaiImage`.
+    /// INPUT: `field` key that maps to multipart `File`.
+    /// OUTPUT: Loaded image ready for processing.
+    /// CONSTRAINTS: Throws `400` when field/file bytes are missing.
     public func hokusaiImage(field: String) async throws -> HokusaiImage {
         // Get the file from multipart form data
         guard let file = try content.decode([String: File].self)[field] else {
