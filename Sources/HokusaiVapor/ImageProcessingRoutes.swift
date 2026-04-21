@@ -1,9 +1,13 @@
 import Vapor
 import Hokusai
 
-/// Pre-built route handlers for common image operations
+/// PURPOSE: Provide ready-to-use Vapor handlers for common image operations.
+/// STABILITY: Flexible
+/// AI HINTS:
+/// - Keep handlers simple examples, not a full application framework.
+/// - Validate query/body inputs before invoking image operations.
 public struct ImageProcessingRoutes {
-    /// Register all image processing routes
+    /// PURPOSE: Register sample text/convert routes under provided route group.
     ///
     /// Example:
     /// ```swift
@@ -16,7 +20,7 @@ public struct ImageProcessingRoutes {
 
     // MARK: - Route Handlers
 
-    /// Add text overlay
+    /// PURPOSE: Render text overlay using query params + raw request image body.
     /// POST /text?text=Hello&fontSize=48&font=/path/to/font.ttf&x=100&y=200
     /// Body: raw image data
     public static func addText(_ req: Request) async throws -> Response {
@@ -58,7 +62,7 @@ public struct ImageProcessingRoutes {
         return try withText.response(format: "jpeg", quality: params.quality ?? 90)
     }
 
-    /// Convert image format
+    /// PURPOSE: Convert uploaded image to requested output format.
     /// POST /convert?format=png&quality=85
     /// Body: raw image data
     public static func convert(_ req: Request) async throws -> Response {
