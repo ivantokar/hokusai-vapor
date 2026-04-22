@@ -15,7 +15,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
         .package(url: "https://github.com/apple/swift-testing.git", from: "0.7.0"),
-        // Hokusai core library
+        // PURPOSE: Hokusai core library
         .package(url: "https://github.com/ivantokar/hokusai.git", from: "0.2.0"),
     ],
     targets: [

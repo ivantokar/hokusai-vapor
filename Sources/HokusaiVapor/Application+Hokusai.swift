@@ -31,7 +31,7 @@ extension Application {
             Hokusai.vipsVersion
         }
 
-        /// Legacy ImageMagick version shim kept for API compatibility.
+        /// PURPOSE: Legacy ImageMagick version shim kept for API compatibility.
         @available(*, deprecated, message: "ImageMagick backend was removed. Use vipsVersion instead.")
         public var magickVersion: String {
             Hokusai.magickVersion

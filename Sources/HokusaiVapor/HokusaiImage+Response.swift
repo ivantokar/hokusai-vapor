@@ -14,9 +14,9 @@ extension HokusaiImage {
     /// Example:
     /// ```swift
     /// app.post("resize") { req async throws -> Response in
-    ///     try await req.hokusaiImage()
-    ///         .drawText("Hello", x: 100, y: 100)
-    ///         .response(format: "jpeg", quality: 85)
+    /// try await req.hokusaiImage()
+    /// .drawText("Hello", x: 100, y: 100)
+    /// .response(format: "jpeg", quality: 85)
     /// }
     /// ```
     public func response(
@@ -29,7 +29,7 @@ extension HokusaiImage {
         let targetQuality = formatLowercased == "png" ? (compression ?? quality) : quality
         let data = try toBuffer(format: format, quality: targetQuality)
 
-        // Map format to mime type
+        // PURPOSE: Map format to mime type
         let mimeType = getMimeType(for: formatLowercased)
 
         return Response(
