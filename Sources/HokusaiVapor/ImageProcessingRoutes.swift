@@ -21,8 +21,8 @@ public struct ImageProcessingRoutes {
     // MARK: - Route Handlers
 
     /// PURPOSE: Render text overlay using query params + raw request image body.
-    /// POST /text?text=Hello&fontSize=48&font=/path/to/font.ttf&x=100&y=200
-    /// Body: raw image data
+    /// INPUT: Endpoint /text?text=Hello&fontSize=48&font=/path/to/font.ttf&x=100&y=200
+    /// INPUT: Body: raw image data
     public static func addText(_ req: Request) async throws -> Response {
         struct TextQuery: Content {
             let text: String
@@ -42,13 +42,13 @@ public struct ImageProcessingRoutes {
         textOptions.fontSize = params.fontSize ?? 48
         textOptions.color = [0, 0, 0, 255]  // Black
 
-        // Add white stroke for visibility
+        // PURPOSE: Add white stroke for visibility
         if let strokeWidth = params.strokeWidth {
             textOptions.strokeColor = [255, 255, 255, 255]
             textOptions.strokeWidth = strokeWidth
         }
 
-        // Use center position if x, y not specified
+        // PURPOSE: Use center position if x, y not specified
         let x = try params.x ?? (image.width / 2)
         let y = try params.y ?? (image.height / 2)
 
@@ -63,8 +63,8 @@ public struct ImageProcessingRoutes {
     }
 
     /// PURPOSE: Convert uploaded image to requested output format.
-    /// POST /convert?format=png&quality=85
-    /// Body: raw image data
+    /// INPUT: Endpoint /convert?format=png&quality=85
+    /// INPUT: Body: raw image data
     public static func convert(_ req: Request) async throws -> Response {
         struct ConvertQuery: Content {
             let format: String  // "jpeg", "png", "webp", etc.

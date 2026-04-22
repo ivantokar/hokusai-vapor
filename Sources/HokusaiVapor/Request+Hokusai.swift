@@ -10,7 +10,7 @@ extension Request {
         guard let buffer = body.data else {
             throw Abort(.badRequest, reason: "No image data in request body")
         }
-        // Convert ByteBuffer to Data using getData method
+        // PURPOSE: Convert ByteBuffer to Data using getData method
         guard let data = buffer.getData(at: buffer.readerIndex, length: buffer.readableBytes) else {
             throw Abort(.badRequest, reason: "Failed to read image data from request")
         }
@@ -22,11 +22,11 @@ extension Request {
     /// OUTPUT: Loaded image ready for processing.
     /// CONSTRAINTS: Throws `400` when field/file bytes are missing.
     public func hokusaiImage(field: String) async throws -> HokusaiImage {
-        // Get the file from multipart form data
+        // PURPOSE: Get the file from multipart form data
         guard let file = try content.decode([String: File].self)[field] else {
             throw Abort(.badRequest, reason: "No file uploaded for field '\(field)'")
         }
-        // Convert ByteBuffer to Data using getData method
+        // PURPOSE: Convert ByteBuffer to Data using getData method
         guard let data = file.data.getData(at: file.data.readerIndex, length: file.data.readableBytes) else {
             throw Abort(.badRequest, reason: "Failed to read file data")
         }
