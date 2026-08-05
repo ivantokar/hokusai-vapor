@@ -60,13 +60,13 @@ func routes(_ app: Application) throws {
 
 **macOS:**
 ```bash
-brew install vips pkg-config
+brew install vips cairo pkg-config
 ```
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt update
-sudo apt install libvips-dev pkg-config
+sudo apt install libvips-dev libcairo2-dev pkg-config
 ```
 
 ### Swift Package Manager
@@ -76,7 +76,7 @@ Add to your `Package.swift`:
 ```swift
 dependencies: [
     .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
-    .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "0.2.0")
+    .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "1.0.0")
 ]
 
 targets: [

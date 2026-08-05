@@ -21,8 +21,8 @@ public struct ImageProcessingRoutes {
     // MARK: - Route Handlers
 
     /// PURPOSE: Render text overlay using query params + raw request image body.
-    /// INPUT: Endpoint /text?text=Hello&fontSize=48&font=/path/to/font.ttf&x=100&y=200
-    /// INPUT: Body: raw image data
+    /// POST /text?text=Hello&fontSize=48&font=/path/to/font.ttf&x=100&y=200
+    /// Body: raw image data
     public static func addText(_ req: Request) async throws -> Response {
         struct TextQuery: Content {
             let text: String
@@ -35,22 +35,23 @@ public struct ImageProcessingRoutes {
         }
 
         let params = try req.query.decode(TextQuery.self)
-        let image = try await req.hokusaiImage()
+        let image = try req.hokusaiImage()
 
         var textOptions = TextOptions()
         textOptions.font = params.font ?? "DejaVu-Sans"
         textOptions.fontSize = params.fontSize ?? 48
         textOptions.color = [0, 0, 0, 255]  // Black
 
-        // PURPOSE: Add white stroke for visibility
+        // Add white stroke for visibility
         if let strokeWidth = params.strokeWidth {
             textOptions.strokeColor = [255, 255, 255, 255]
             textOptions.strokeWidth = strokeWidth
         }
 
         // PURPOSE: Use center position if x, y not specified
-        let x = try params.x ?? (image.width / 2)
-        let y = try params.y ?? (image.height / 2)
+        let metadata = try image.metadata()
+        let x = params.x ?? (metadata.width / 2)
+        let y = params.y ?? (metadata.height / 2)
 
         let withText = try image.drawText(
             params.text,
@@ -59,12 +60,12 @@ public struct ImageProcessingRoutes {
             options: textOptions
         )
 
-        return try withText.response(format: "jpeg", quality: params.quality ?? 90)
+        return try await withText.response(format: "jpeg", quality: params.quality ?? 90)
     }
 
     /// PURPOSE: Convert uploaded image to requested output format.
-    /// INPUT: Endpoint /convert?format=png&quality=85
-    /// INPUT: Body: raw image data
+    /// POST /convert?format=png&quality=85
+    /// Body: raw image data
     public static func convert(_ req: Request) async throws -> Response {
         struct ConvertQuery: Content {
             let format: String  // "jpeg", "png", "webp", etc.
@@ -73,9 +74,9 @@ public struct ImageProcessingRoutes {
         }
 
         let params = try req.query.decode(ConvertQuery.self)
-        let image = try await req.hokusaiImage()
+        let image = try req.hokusaiImage()
 
-        return try image.response(
+        return try await image.response(
             format: params.format,
             quality: params.quality,
             compression: params.compression
