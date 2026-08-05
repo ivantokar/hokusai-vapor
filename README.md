@@ -1,711 +1,134 @@
 <p align="center">
-<img src="./hokusai-vapor-logo-v2.png" alt="" width="400">
+<img src="./hokusai-vapor-logo-v3.png" alt="Hokusai for Vapor" width="500">
 </p>
 
 # Hokusai Vapor
 
-**Seamless image processing integration for Vapor applications**
+Vapor integration for [Hokusai 1.0](https://github.com/ivantokar/hokusai): decode an upload into an immutable image pipeline, transform it, then asynchronously return an HTTP response.
 
-Hokusai Vapor provides native Vapor framework integration for the [Hokusai](https://github.com/ivantokar/hokusai) image processing library. Process uploaded images, generate dynamic graphics, and build image APIs with minimal boilerplate.
+## Requirements
 
-[![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
-[![Vapor](https://img.shields.io/badge/Vapor-4.0+-blue.svg)](https://vapor.codes)
-[![Platform](https://img.shields.io/badge/Platform-macOS%20|%20Linux-lightgrey.svg)](https://swift.org)
+- Swift 6.0+, Vapor 4, and Hokusai 1.0.
+- libvips and Cairo with PDF support.
 
-## Features
-
-- **Drop-in Integration** - Extends Vapor's `Application` and `Request` with image processing capabilities
-- **Request Helpers** - Load images directly from multipart uploads or request body
-- **Response Conversion** - Automatic conversion to Vapor `Response` with proper content types
-- **Pre-built Routes** - Optional ready-to-use endpoints for common operations
-- **Lifecycle Management** - Automatic initialization and cleanup of libvips
-- **Error Handling** - Vapor-native error responses with proper HTTP status codes
-
-## Quick Example
-
-```swift
-import Vapor
-import HokusaiVapor
-
-func configure(_ app: Application) throws {
-    // Initialize Hokusai
-    try app.hokusai.configure()
-}
-
-func routes(_ app: Application) throws {
-    // Load image from request, resize, return as response
-    app.post("resize") { req async throws -> Response in
-        let image = try await req.hokusaiImage()
-        let resized = try image.resize(width: 800, height: 600)
-        return try resized.response(format: .jpeg, quality: 85)
-    }
-}
-```
-
-## Perfect For
-
-- RESTful image processing APIs
-- User avatar/profile picture handling
-- Dynamic social media card generation
-- File upload preprocessing pipelines
-
-## Related Projects
-
-- [Hokusai](https://github.com/ivantokar/hokusai) - Core libvips-powered image processing library
-- [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) - Complete demo app with web UI
-
-## Installation
-
-### Requirements
-
-**macOS:**
 ```bash
+# macOS
 brew install vips cairo pkg-config
-```
 
-**Ubuntu/Debian:**
-```bash
-sudo apt update
+# Ubuntu/Debian
 sudo apt install libvips-dev libcairo2-dev pkg-config
 ```
 
-### Swift Package Manager
-
-Add to your `Package.swift`:
+## Installation
 
 ```swift
 dependencies: [
     .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
     .package(url: "https://github.com/ivantokar/hokusai-vapor.git", from: "1.0.0")
 ]
-
-targets: [
-    .target(
-        name: "App",
-        dependencies: [
-            .product(name: "Vapor", package: "vapor"),
-            .product(name: "HokusaiVapor", package: "hokusai-vapor")
-        ]
-    )
-]
 ```
 
-## Quick Start
+Add `HokusaiVapor` to the target that defines your routes.
 
-### 1. Configure Hokusai in your app
+## Configure once
 
 ```swift
 import Vapor
 import HokusaiVapor
 
-public func configure(_ app: Application) throws {
-    // Initialize Hokusai
+func configure(_ app: Application) throws {
     try app.hokusai.configure()
-
-    // Your other configuration...
     try routes(app)
 }
 ```
 
-### 2. Use in your routes
+`configure()` initializes Hokusai's native image runtime. Do not add a Vapor lifecycle shutdown hook: Hokusai owns ordinary process teardown safely.
 
-```swift
-import Vapor
-import HokusaiVapor
-
-func routes(_ app: Application) throws {
-    // Simple text overlay endpoint
-    app.post("watermark") { req async throws -> Response in
-        let image = try await req.hokusaiImage()
-
-        let watermarked = try image.drawText(
-            "© 2024 MyCompany",
-            x: 10,
-            y: 10,
-            options: TextOptions(
-                font: "Arial",
-                fontSize: 24,
-                color: [255, 255, 255, 200]
-            )
-        )
-
-        return try watermarked.response(format: "jpeg", quality: 85)
-    }
-}
-```
-
-### 3. Use pre-built routes
+## Raw request body
 
 ```swift
 import HokusaiVapor
 
-func routes(_ app: Application) throws {
-    let api = app.grouped("api", "images")
-
-    // Registers /api/images/text and /api/images/convert
-    try ImageProcessingRoutes.register(to: api)
+app.post("resize") { req async throws -> Response in
+    let image = try req.hokusaiImage()
+    let resized = try image.resize(width: 800, height: 600, fit: .cover)
+    return try await resized.response(format: "jpeg", quality: 85)
 }
 ```
 
-## API Documentation
-
-### Application Configuration
-
-```swift
-import HokusaiVapor
-
-// Configure in configure.swift
-try app.hokusai.configure()
-
-// Access version info
-print(app.hokusai.vipsVersion)    // "8.15.1"
-```
-
-### Request Extensions
-
-#### Load from Request Body
-
-```swift
-app.post("process") { req async throws -> Response in
-    // Load image from raw request body
-    let image = try await req.hokusaiImage()
-
-    // Process the image
-    let resized = try image.resize(width: 800)
-
-    return try resized.response(format: "jpeg", quality: 85)
-}
-```
-
-**Test with curl:**
 ```bash
-curl -X POST http://localhost:8080/process \
+curl -X POST http://localhost:8080/resize \
   --data-binary "@photo.jpg" \
   -o output.jpg
 ```
 
-#### Load from Multipart Form Data
+## Multipart upload
 
 ```swift
 app.post("upload") { req async throws -> Response in
-    // Load from multipart field named "image"
-    let image = try await req.hokusaiImage(field: "image")
-
-    let thumbnail = try image.resize(width: 200, height: 200)
-
-    return try thumbnail.response(format: "png")
+    let image = try req.hokusaiImage(field: "image")
+    let thumbnail = try image.resize(width: 200, height: 200, fit: .cover)
+    return try await thumbnail.response(format: "png", compression: 6)
 }
 ```
 
-**Test with curl:**
-```bash
-curl -X POST http://localhost:8080/upload \
-  -F "image=@photo.jpg" \
-  -o thumbnail.png
-```
-
-### Response Conversion
-
-```swift
-extension HokusaiImage {
-    func response(
-        format: String = "jpeg",
-        quality: Int? = nil,
-        compression: Int? = nil,
-        status: HTTPStatus = .ok
-    ) throws -> Response
-}
-```
-
-**Supported formats:**
-- `jpeg` / `jpg` - JPEG with quality 1-100 (default: 85)
-- `png` - PNG with compression 0-9 (default: 6)
-- `webp` - WebP with quality 1-100 (default: 80)
-- `avif` - AVIF with quality 1-100 (default: 75)
-- `gif` - GIF
-- `tiff` / `tif` - TIFF
-
-PNG uses `compression` (0-9). If you pass both `quality` and `compression`, PNG will use `compression`.
-AVIF/HEIF output requires libvips built with libheif support.
-
-**Examples:**
-```swift
-// JPEG with custom quality
-return try image.response(format: "jpeg", quality: 90)
-
-// PNG with maximum compression
-return try image.response(format: "png", compression: 9)
-
-// WebP
-return try image.response(format: "webp", quality: 80)
-
-// Custom status code
-return try image.response(format: "jpeg", status: .created)
-```
-
-## Pre-built Routes
-
-### Text Overlay Route
-
-**Endpoint:** `POST /text?text=Hello&fontSize=48&x=100&y=200`
-
-**Query Parameters:**
-- `text` (required) - Text to render
-- `fontSize` (optional) - Font size in pixels (default: 48)
-- `font` (optional) - Font path or name (default: "DejaVu-Sans")
-- `x` (optional) - X position (default: center)
-- `y` (optional) - Y position (default: center)
-- `strokeWidth` (optional) - Text outline width
-- `quality` (optional) - Output quality 1-100 (default: 90)
-
-**Example:**
-```bash
-curl -X POST "http://localhost:8080/api/images/text?text=Hello&fontSize=64&strokeWidth=2" \
-  --data-binary "@photo.jpg" \
-  -o with_text.jpg
-```
-
-### Format Conversion Route
-
-**Endpoint:** `POST /convert?format=webp&quality=80`
-
-**Query Parameters:**
-- `format` (required) - Target format: jpeg, png, webp, avif, gif, tiff
-- `quality` (optional) - Quality 1-100
-- `compression` (optional) - PNG compression 0-9
-
-**Example:**
-```bash
-curl -X POST "http://localhost:8080/api/images/convert?format=webp&quality=80" \
-  --data-binary "@photo.jpg" \
-  -o photo.webp
-```
-
-## Advanced Usage
-
-### Custom Route with Multiple Operations
-
-```swift
-app.post("thumbnail") { req async throws -> Response in
-    struct Query: Content {
-        let width: Int
-        let height: Int
-        let text: String?
-    }
-
-    let params = try req.query.decode(Query.self)
-    let image = try await req.hokusaiImage()
-
-    // Create thumbnail
-    var processed = try image.resizeToCover(
-        width: params.width,
-        height: params.height
-    )
-
-    // Optionally add watermark
-    if let text = params.text {
-        processed = try processed.drawText(
-            text,
-            x: 10,
-            y: params.height - 30,
-            options: TextOptions(
-                font: "Arial",
-                fontSize: 20,
-                color: [255, 255, 255, 200],
-                strokeColor: [0, 0, 0, 200],
-                strokeWidth: 1.0
-            )
-        )
-    }
-
-    return try processed.response(format: "jpeg", quality: 85)
-}
-```
-
-### Composite / Watermark Route
+## Text and metadata
 
 ```swift
 app.post("watermark") { req async throws -> Response in
-    let base = try await req.hokusaiImage()
-    let overlay = try await Hokusai.image(from: "Assets/logo.png")
-
-    let options = CompositeOptions(mode: .over, opacity: 0.7)
-    let composited = try base.composite(
-        overlay: overlay,
-        x: 20,
-        y: 20,
-        options: options
-    )
-
-    return try composited.response(format: "png", compression: 9)
-}
-```
-
-### Store Output in Amazon S3
-
-Add AWS SDK for Swift to your `Package.swift`:
-
-```swift
-.package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.0.0")
-```
-
-```swift
-.product(name: "AWSS3", package: "aws-sdk-swift")
-```
-
-Route example:
-
-```swift
-import AWSClientRuntime
-import AWSS3
-
-app.post("upload") { req async throws -> Response in
-    let image = try await req.hokusaiImage()
-    let data = try image.toBuffer(format: "jpeg", quality: 85)
-
-    let config = try await S3Client.S3ClientConfiguration(region: "us-east-1")
-    let client = S3Client(config: config)
-    defer {
-        Task { try? await client.shutdown() }
-    }
-
-    let key = "uploads/\(UUID().uuidString).jpg"
-    let request = PutObjectInput(
-        body: .data(data),
-        bucket: "my-bucket",
-        key: key,
-        contentType: "image/jpeg"
-    )
-
-    _ = try await client.putObject(input: request)
-    return Response(status: .ok, body: .init(string: key))
-}
-```
-
-### Template Text Example
-
-```swift
-struct TemplateTextController: RouteCollection {
-    func boot(routes: RoutesBuilder) throws {
-        routes.post("template-text", use: generate)
-    }
-
-    func generate(req: Request) async throws -> Response {
-        struct Query: Content {
-            let text: String
-        }
-
-        let params = try req.query.decode(Query.self)
-
-        // Load template image
-        let templateImage = try await Hokusai.image(from: "/path/to/template.png")
-
-        // Configure custom font
-        var textOptions = TextOptions()
-        textOptions.font = "/path/to/CustomFont.ttf"
-        textOptions.fontSize = 96
-        textOptions.color = [0, 0, 128, 255]
-        textOptions.strokeColor = [255, 255, 255, 255]
-        textOptions.strokeWidth = 2.0
-
-        // Add text to template image
-        let width = try templateImage.width
-        let height = try templateImage.height
-
-        let withText = try templateImage.drawText(
-            params.text,
-            x: width / 2,
-            y: Int(Double(height) * 0.6),
-            options: textOptions
-        )
-
-        return try withText.response(format: "png", compression: 9)
-    }
-}
-
-// Register in routes
-try app.register(collection: TemplateTextController())
-```
-
-**Test:**
-```bash
-curl -X POST "http://localhost:8080/template-text?text=Hello%20World" \
-  -o template-text.png
-```
-
-### Metadata Endpoint
-
-```swift
-app.post("metadata") { req async throws -> Response in
-    struct MetadataResponse: Content {
-        let width: Int
-        let height: Int
-        let format: String?
-        let hasAlpha: Bool
-    }
-
-    let image = try await req.hokusaiImage()
+    let image = try req.hokusaiImage()
     let metadata = try image.metadata()
 
-    let response = MetadataResponse(
-        width: metadata.width,
-        height: metadata.height,
-        format: metadata.format?.rawValue,
-        hasAlpha: metadata.hasAlpha
+    let text = try image.drawText(
+        "© MyCompany",
+        x: metadata.width / 2,
+        y: metadata.height / 2,
+        options: TextOptions(font: "sans Bold", fontSize: 36, color: [255, 255, 255, 255])
     )
 
-    return try await response.encodeResponse(for: req)
+    return try await text.response(format: "webp", quality: 82)
 }
 ```
 
-## Docker Deployment
+## Output responses
 
-### Dockerfile Example
-
-```dockerfile
-# Build stage
-FROM swift:6.1-noble AS build
-
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    libvips-dev \
-    pkg-config
-
-# Copy source code
-WORKDIR /build
-COPY . .
-
-# Build application
-RUN swift build -c release
-
-# Runtime stage
-FROM swift:6.1-noble-slim
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libvips \
-    fonts-dejavu-core \
-    fontconfig \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy custom fonts
-COPY fonts/ /usr/share/fonts/custom/
-RUN fc-cache -f -v
-
-# Copy executable
-COPY --from=build /build/.build/release/App /app/
-
-EXPOSE 8080
-CMD ["/app/App", "serve", "--env", "production", "--hostname", "0.0.0.0"]
-```
-
-### docker-compose.yml
-
-```yaml
-version: '3.8'
-
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - LOG_LEVEL=info
-    volumes:
-      - ./templates:/app/templates
-```
-
-### Build and Run
-
-```bash
-# Build image
-docker compose build
-
-# Run container
-docker compose up
-
-# Test endpoint
-curl -X POST "http://localhost:8080/api/images/text?text=Hello" \
-  --data-binary "@photo.jpg" \
-  -o output.jpg
-```
-
-## Performance Considerations
-
-### Memory Usage
-
-Request body size limits can be configured in Vapor:
+`Hokusai.response` evaluates the pipeline asynchronously and sets the matching content type.
 
 ```swift
-// In configure.swift
-app.routes.defaultMaxBodySize = "10mb"  // Adjust based on your needs
+try await image.response(format: "jpeg", quality: 85)
+try await image.response(format: "png", compression: 6)
+try await image.response(format: "webp", quality: 82)
+try await image.response(format: "avif", quality: 50)
+try await image.response(format: "pdf")
 ```
 
-### Concurrent Processing
+PDF output is a Cairo-backed PDF containing Hokusai's evaluated raster page. It is appropriate for image documents; it does not currently preserve selectable vector text. See [Hokusai issue #13](https://github.com/ivantokar/hokusai/issues/13) for the planned vector-PDF API.
 
-Hokusai is thread-safe and can handle concurrent requests:
+## Included routes
+
+`ImageProcessingRoutes.register(to:)` provides two optional examples under any route group:
 
 ```swift
-// Process multiple images concurrently
-app.post("batch") { req async throws -> [String] in
-    struct BatchRequest: Content {
-        let images: [Data]
-    }
-
-    let batch = try req.content.decode(BatchRequest.self)
-
-    return try await withThrowingTaskGroup(of: String.self) { group in
-        for (index, imageData) in batch.images.enumerated() {
-            group.addTask {
-                let image = try await Hokusai.image(from: imageData)
-                let resized = try image.resize(width: 800)
-                let filename = "output_\(index).jpg"
-                try resized.toFile("/tmp/\(filename)")
-                return filename
-            }
-        }
-
-        var results: [String] = []
-        for try await result in group {
-            results.append(result)
-        }
-        return results
-    }
-}
+try ImageProcessingRoutes.register(to: app.grouped("api", "images"))
 ```
 
-## Error Handling
+- `POST /api/images/text?text=Hello&fontSize=48`
+- `POST /api/images/convert?format=webp&quality=82`
 
-```swift
-app.post("process") { req async throws -> Response in
-    do {
-        let image = try await req.hokusaiImage()
-        let processed = try image.resize(width: 800)
-        return try processed.response(format: "jpeg")
-    } catch let error as HokusaiError {
-        throw Abort(.badRequest, reason: "Image processing failed: \(error)")
-    } catch let error as AbortError {
-        throw error
-    } catch {
-        throw Abort(.internalServerError, reason: "Unexpected error: \(error)")
-    }
-}
-```
+Both accept the source image as the raw request body.
 
-## Troubleshooting
+## 0.x migration
 
-### "No image data in request body" Error
+HokusaiVapor 1.0 is a breaking release.
 
-Make sure you're sending the image data in the request body:
+| 0.x | 1.0 |
+| --- | --- |
+| `try await req.hokusaiImage()` | `try req.hokusaiImage()` |
+| `HokusaiImage` | `Hokusai` |
+| `try image.response(...)` | `try await image.response(...)` |
+| Per-app runtime shutdown | No ordinary shutdown hook |
 
-```bash
-# Correct - binary data in body
-curl -X POST http://localhost:8080/process \
-  --data-binary "@photo.jpg"
+## Related projects
 
-# Incorrect - will fail
-curl -X POST http://localhost:8080/process
-```
-
-### Font Not Found in Docker
-
-Ensure fonts are copied to the container and font cache is updated:
-
-```dockerfile
-COPY fonts/ /usr/share/fonts/custom/
-RUN fc-cache -f -v
-```
-
-Verify fonts are installed:
-
-```bash
-docker exec -it container_name fc-list | grep YourFont
-```
-
-## iOS Client Example
-
-This example calls a HokusaiVapor server's pre-built `/api/images/convert` route with a raw image body:
-
-```swift
-import UIKit
-
-func convertToWebP(_ image: UIImage, baseURL: URL) async throws -> UIImage {
-    guard let data = image.jpegData(compressionQuality: 0.9) else {
-        throw URLError(.cannotDecodeRawData)
-    }
-
-    var components = URLComponents(
-        url: baseURL.appendingPathComponent("api/images/convert"),
-        resolvingAgainstBaseURL: false
-    )
-    components?.queryItems = [
-        URLQueryItem(name: "format", value: "webp"),
-        URLQueryItem(name: "quality", value: "80")
-    ]
-
-    guard let url = components?.url else {
-        throw URLError(.badURL)
-    }
-
-    var request = URLRequest(url: url)
-    request.httpMethod = "POST"
-    request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-    request.httpBody = data
-
-    let (responseData, _) = try await URLSession.shared.data(for: request)
-    guard let processed = UIImage(data: responseData) else {
-        throw URLError(.cannotDecodeRawData)
-    }
-
-    return processed
-}
-```
-
-## Examples
-
-See the [hokusai-vapor-example](https://github.com/ivantokar/hokusai-vapor-example) demo app for a complete working example with:
-- Interactive web UI for testing features
-- Template text drawing with custom fonts
-- Image metadata extraction
-- Format conversion (JPEG, PNG, WebP, AVIF, GIF)
-- Text overlay with stroke effects
-- Resize and rotate operations
-- Docker deployment
-
-## Testing
-
-```bash
-swift build
-swift test
-```
-
-Tests are implemented with `XCTest` and run with standard SwiftPM tooling.
-The package keeps a minimal `swift-testing` dependency to support toolchains where SwiftPM still expects the `Testing` module at test runtime.
-
-## Releases
-
-Hokusai Vapor follows semantic version tags in the format `vX.Y.Z`.
-
-- Releases are managed manually via semantic version tags (`vX.Y.Z`).
-- This repository intentionally does not run GitHub Actions workflows to reduce OSS costs.
-- Human-curated release notes are tracked in [CHANGELOG.md](CHANGELOG.md).
-
-## Swift Package Index
-
-This repository is structured to be compatible with Swift Package Index:
-
-- semantic version tags (`vX.Y.Z`)
-- local validation with `swift build` and `swift test`
-- clear installation/usage docs in this README
-
-Recommended next step when API docs grow: add a lightweight DocC catalog at `Sources/HokusaiVapor/HokusaiVapor.docc` and let SPI host the generated documentation.
-
-## Contributing
-
-Contributions welcome! Please see the main [Hokusai](https://github.com/ivantokar/hokusai) repository.
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
+- [Hokusai](https://github.com/ivantokar/hokusai)
+- [Archived example application](https://github.com/ivantokar/hokusai-vapor-example)
