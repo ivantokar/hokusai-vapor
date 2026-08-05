@@ -23,12 +23,19 @@ final class HokusaiVaporTests: XCTestCase {
         try await HokusaiTestRuntime.shared.ensureInitialized()
 
         let data = try XCTUnwrap(Data(base64Encoded: samplePngBase64))
-        let image = try await Hokusai.image(from: data)
-        let response = try image.response(format: "png")
+        let image = try Hokusai(data: data)
+        let response = try await image.response(format: "png")
         let bodyBytes = response.body.buffer?.readableBytes ?? 0
 
         XCTAssertEqual(response.status, .ok)
         XCTAssertEqual(response.headers["Content-Type"].first, "image/png")
         XCTAssertGreaterThan(bodyBytes, 0)
+    }
+
+    func testPDFResponseHasPDFContentType() async throws {
+        let data = try XCTUnwrap(Data(base64Encoded: samplePngBase64))
+        let response = try await Hokusai(data: data).response(format: "pdf")
+        XCTAssertEqual(response.headers["Content-Type"].first, "application/pdf")
+        XCTAssertTrue((response.body.buffer?.getData(at: 0, length: response.body.buffer?.readableBytes ?? 0) ?? Data()).starts(with: Data("%PDF-".utf8)))
     }
 }

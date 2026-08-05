@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0] - 2026-08-05
+
+### Changed
+- **Breaking:** migrate the Vapor integration to the immutable Hokusai 1.0
+  pipeline and its async output terminals.
+- `Request.hokusaiImage(field:)` now returns `Hokusai`; image response output
+  is asynchronous and supports JPEG, PNG, WebP, AVIF, and PDF.
+- Application configuration relies on Hokusai's process-safe automatic runtime
+  initialization; it no longer registers a per-application libvips shutdown.
+
+### Requirements
+- Hokusai 1.0.0 and Cairo PDF support are required.
+
 ## [0.2.0] - 2026-04-20
 
 ### Changed
