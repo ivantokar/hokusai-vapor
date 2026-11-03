@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.0.0] - 2026-11-03
+
+### Changed
+- Built on Hokusai 2.0 and its streaming output. `Hokusai.response(status:headers:chunkSize:)` streams the encoded image through Vapor's body writer with backpressure; the encoder is chosen on the pipeline (`.webp(quality: 82).response()`) instead of by a format string.
+- `Request.hokusaiImage(options:maximumSize:)` is async, collects the body within a size limit (`413` over it, `400` when empty) and takes Hokusai's `InputOptions`. `hokusaiImage(field:options:)` takes the same options.
+- `app.hokusai.configure(_:)` accepts Hokusai's `RuntimeConfiguration`; `capabilities()` and `runtimeStatus` expose the runtime.
+- The text route uses Hokusai's generated text sources and `Placement`.
+
+### Added
+- `HokusaiError.httpStatus` and `.abort`, and `HokusaiErrorMiddleware`, to map Hokusai errors to HTTP statuses by case.
+- Tests that run a Vapor application: streamed responses, limits, error statuses and the sample routes.
+- CI on Linux (Swift 6.4) and macOS.
+
+### Requirements
+- Hokusai 2.0.0, Vapor 4.89+, libvips 8.16+ and Cairo with PDF support.
+
 ## [1.0.0] - 2026-08-05
 
 ### Changed
