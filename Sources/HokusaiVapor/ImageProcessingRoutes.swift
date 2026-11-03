@@ -1,85 +1,77 @@
-import Vapor
 import Hokusai
+import Vapor
 
-/// PURPOSE: Provide ready-to-use Vapor handlers for common image operations.
-/// STABILITY: Flexible
-/// AI HINTS:
-/// - Keep handlers simple examples, not a full application framework.
-/// - Validate query/body inputs before invoking image operations.
+/// Ready-to-use Vapor handlers for two common image operations.
+///
+/// These are small examples, not an application framework: validate input and
+/// choose limits for your own service, and copy a handler when you need to
+/// change it.
 public struct ImageProcessingRoutes {
-    /// PURPOSE: Register sample text/convert routes under provided route group.
+    /// Registers `POST text` and `POST convert` under the given route group.
     ///
-    /// Example:
     /// ```swift
     /// try ImageProcessingRoutes.register(to: app.grouped("api", "images"))
     /// ```
     public static func register(to routes: RoutesBuilder) throws {
-        routes.post("text", use: addText)
-        routes.post("convert", use: convert)
+        let routes = routes.grouped(HokusaiErrorMiddleware())
+        routes.on(.POST, "text", body: .collect(maxSize: "20mb"), use: addText)
+        routes.on(.POST, "convert", body: .collect(maxSize: "20mb"), use: convert)
     }
 
-    // MARK: - Route Handlers
+    // MARK: - Route handlers
 
-    /// PURPOSE: Render text overlay using query params + raw request image body.
-    /// POST /text?text=Hello&fontSize=48&font=/path/to/font.ttf&x=100&y=200
-    /// Body: raw image data
+    /// Draws text on the uploaded image and returns a JPEG.
+    ///
+    /// `POST /text?text=Hello&fontSize=48&strokeWidth=2&quality=90`, with the
+    /// source image as the raw request body. The text is centred.
     public static func addText(_ req: Request) async throws -> Response {
         struct TextQuery: Content {
             let text: String
             let fontSize: Int?
             let font: String?
-            let x: Int?
-            let y: Int?
             let strokeWidth: Double?
             let quality: Int?
         }
 
         let params = try req.query.decode(TextQuery.self)
-        let image = try req.hokusaiImage()
-
-        var textOptions = TextOptions()
-        textOptions.font = params.font ?? "DejaVu-Sans"
-        textOptions.fontSize = params.fontSize ?? 48
-        textOptions.color = [0, 0, 0, 255]  // Black
-
-        // Add white stroke for visibility
-        if let strokeWidth = params.strokeWidth {
-            textOptions.strokeColor = [255, 255, 255, 255]
-            textOptions.strokeWidth = strokeWidth
+        let stroke = params.strokeWidth.map {
+            TextStroke(color: Color(red: 1, green: 1, blue: 1), width: $0)
         }
-
-        // PURPOSE: Use center position if x, y not specified
-        let metadata = try image.metadata()
-        let x = params.x ?? (metadata.width / 2)
-        let y = params.y ?? (metadata.height / 2)
-
-        let withText = try image.drawText(
-            params.text,
-            x: x,
-            y: y,
-            options: textOptions
+        let style = TextStyle(
+            font: params.font ?? "sans",
+            fontSize: params.fontSize ?? 48,
+            color: Color(red: 0, green: 0, blue: 0),
+            stroke: stroke
         )
 
-        return try await withText.response(format: "jpeg", quality: params.quality ?? 90)
+        return try await req.hokusaiImage()
+            .drawText(.init(stringLiteral: params.text), placement: .gravity(.center), style: style)
+            .jpeg(quality: params.quality ?? 90)
+            .response()
     }
 
-    /// PURPOSE: Convert uploaded image to requested output format.
-    /// POST /convert?format=png&quality=85
-    /// Body: raw image data
+    /// Converts the uploaded image to the requested format.
+    ///
+    /// `POST /convert?format=webp&quality=82`, with the source image as the
+    /// raw request body. `format` is one of `jpeg`, `png`, `webp`, `avif`, `pdf`.
     public static func convert(_ req: Request) async throws -> Response {
         struct ConvertQuery: Content {
-            let format: String  // "jpeg", "png", "webp", etc.
+            let format: String
             let quality: Int?
             let compression: Int?
         }
 
         let params = try req.query.decode(ConvertQuery.self)
-        let image = try req.hokusaiImage()
-
-        return try await image.response(
-            format: params.format,
-            quality: params.quality,
-            compression: params.compression
-        )
+        let image = try await req.hokusaiImage()
+        let encoded: Hokusai
+        switch params.format.lowercased() {
+        case "jpeg", "jpg": encoded = try image.jpeg(quality: params.quality ?? 80)
+        case "png": encoded = try image.png(compressionLevel: params.compression ?? 6)
+        case "webp": encoded = try image.webp(quality: params.quality ?? 80)
+        case "avif": encoded = try image.avif(quality: params.quality ?? 50)
+        case "pdf": encoded = try image.pdf()
+        default: throw Abort(.badRequest, reason: "Unsupported output format: \(params.format)")
+        }
+        return try await encoded.response()
     }
 }

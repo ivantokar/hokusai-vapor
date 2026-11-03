@@ -1,9 +1,8 @@
-import Vapor
 import Hokusai
+import Vapor
 
 extension Application {
-    /// PURPOSE: Expose Hokusai integration entrypoint on Vapor `Application`.
-    /// OUTPUT: Config object that wires safe one-time initialization.
+    /// Hokusai's process-wide runtime, as seen from a Vapor application.
     public var hokusai: HokusaiConfiguration {
         .init(application: self)
     }
@@ -11,29 +10,32 @@ extension Application {
     public struct HokusaiConfiguration {
         let application: Application
 
-        /// PURPOSE: Register Hokusai runtime with Vapor app lifecycle.
-        /// SIDE EFFECTS:
-        /// - Initializes libvips runtime.
-        /// DO: Call once during application bootstrap.
-        public func configure() throws {
-            try Hokusai.initialize()
+        /// Freezes Hokusai's process-level runtime configuration.
+        ///
+        /// Call it once, during bootstrap, before the first image is
+        /// evaluated. Without a configuration the defaults apply and the
+        /// native runtime starts on first use. Hokusai owns ordinary process
+        /// teardown, so there is no shutdown hook to register.
+        ///
+        /// ```swift
+        /// try app.hokusai.configure(.init(maxConcurrentEvaluations: .fixed(4), maxQueuedEvaluations: 64))
+        /// ```
+        public func configure(_ configuration: RuntimeConfiguration? = nil) throws {
+            if let configuration {
+                try Hokusai.configure(configuration)
+            } else {
+                try Hokusai.initialize()
+            }
         }
 
-        /// PURPOSE: Return current Hokusai runtime version string.
-        public var version: String {
-            Hokusai.version
+        /// The native formats and features this process can read and write.
+        public func capabilities() throws -> RuntimeCapabilities {
+            try Hokusai.capabilities()
         }
 
-        /// PURPOSE: Return current libvips runtime version string.
-        public var vipsVersion: String {
-            Hokusai.vipsVersion
+        /// Scheduler state: running and queued evaluations.
+        public var runtimeStatus: RuntimeStatus {
+            Hokusai.runtimeStatus
         }
-
-        /// PURPOSE: Legacy ImageMagick version shim kept for API compatibility.
-        @available(*, deprecated, message: "ImageMagick backend was removed. Use vipsVersion instead.")
-        public var magickVersion: String {
-            Hokusai.magickVersion
-        }
-
     }
 }

@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, release/2.0]
+  push:
+    branches: [main, release/2.0]
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Hokusai needs libvips 8.16+ and Cairo with PDF support. Linux builds libvips
+# with the script Hokusai itself uses, so both packages test the same native
+# baseline. Vapor is the released 4.x line from Package.swift.
+jobs:
+  linux:
+    name: Linux (Swift 6.4)
+    runs-on: ubuntu-latest
+    container: swift:6.4-noble
+    env:
+      VIPS_PREFIX: /opt/vips
+      PKG_CONFIG_PATH: /opt/vips/lib/pkgconfig
+      LD_LIBRARY_PATH: /opt/vips/lib
+      HOKUSAI_REF: v2.0.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install native build dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            curl ca-certificates xz-utils zstd meson ninja-build pkg-config build-essential \
+            libglib2.0-dev libexpat1-dev libjpeg-dev libpng-dev libwebp-dev \
+            libtiff-dev libgif-dev libexif-dev liblcms2-dev libcairo2-dev \
+            libpango1.0-dev librsvg2-dev libpoppler-glib-dev libheif-dev \
+            libarchive-dev libfftw3-dev liborc-0.4-dev fonts-dejavu-core
+
+      - name: Restore libvips build
+        uses: actions/cache@v4
+        with:
+          path: /opt/vips
+          key: vips-8.18.7-noble-vapor
+
+      - name: Install libvips 8.18.7
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/ivantokar/hokusai/${HOKUSAI_REF}/.github/scripts/install-libvips.sh" -o /tmp/install-libvips.sh
+          bash /tmp/install-libvips.sh 8.18.7 "$VIPS_PREFIX"
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Test
+        run: swift test
+
+  macos:
+    name: macOS (Swift 6.4, Homebrew libvips)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      # Runner Xcode releases lag swift.org; install the 6.4 toolchain directly.
+      - name: Install Swift 6.4
+        run: |
+          curl -fsSLO https://download.swift.org/swiftly/darwin/swiftly.pkg
+          installer -pkg swiftly.pkg -target CurrentUserHomeDirectory
+          ~/.swiftly/bin/swiftly init --quiet-shell-followup --assume-yes --skip-install
+          . ~/.swiftly/env.sh
+          swiftly install --use --assume-yes 6.4
+          echo "$HOME/.swiftly/bin" >> "$GITHUB_PATH"
+
+      - name: Install libvips and Cairo PDF support
+        run: brew install vips cairo pkg-config
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Test
+        run: swift test
