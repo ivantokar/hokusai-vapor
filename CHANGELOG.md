@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Added
+- Tests over real HTTP connections: a client that reads slowly receives every byte,
+  a client that disconnects part-way leaves no evaluation holding a slot, and the
+  server keeps serving after dropped connections (hokusai#126).
+
 ## [2.0.0] - 2026-11-03
 
 ### Changed
