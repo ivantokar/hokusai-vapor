@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-05
+
+Requires Hokusai 2.2.
+
+### Changed
+- `hokusaiImage` reads the body with `Hokusai(spooling:)` (hokusai#112). A small upload stays in
+  memory; one larger than `memoryLimit` (default 1 MiB) is spooled to a private temporary file that the
+  pipeline removes when it is released, so the encoded upload no longer has to fit in memory and
+  `maximumSize` can be raised. New parameters `memoryLimit` and `spoolDirectory`; the limits, statuses
+  (`413` over the limit, `400` for an empty body) and the early `Content-Length` check are unchanged.
+  The byte limit is the smaller of `options.limits.maxBytes` and `maximumSize`.
+- Requires Hokusai 2.2 (`from: "2.2.0"`).
+
 ### Added
 - Overload and failure tests over real connections (hokusai#126): with one slot and no queue a
   second request gets a `503`, the busy request is not disturbed and the server serves again once the
