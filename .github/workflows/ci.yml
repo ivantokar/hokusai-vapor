@@ -56,6 +56,11 @@ jobs:
       - name: Test
         run: swift test
 
+      # The runtime configuration freezes at first use, so the overload tests (one slot, no queue)
+      # run in a process of their own; `swift test` above skips them.
+      - name: Overload tests
+        run: HOKUSAI_OVERLOAD_TESTS=1 swift test --filter OverloadTests
+
   macos:
     name: macOS (Swift 6.4, Homebrew libvips)
     runs-on: macos-26
@@ -80,3 +85,8 @@ jobs:
 
       - name: Test
         run: swift test
+
+      # The runtime configuration freezes at first use, so the overload tests (one slot, no queue)
+      # run in a process of their own; `swift test` above skips them.
+      - name: Overload tests
+        run: HOKUSAI_OVERLOAD_TESTS=1 swift test --filter OverloadTests
