@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 ## [Unreleased]
 
 ### Added
+- Overload and failure tests over real connections (hokusai#126): with one slot and no queue a
+  second request gets a `503`, the busy request is not disturbed and the server serves again once the
+  slot is free; a pipeline that fails after output began ends the body without the terminating chunk,
+  so the client can tell the image is incomplete, and frees its slot. They run in a process of their
+  own (`HOKUSAI_OVERLOAD_TESTS=1 swift test --filter OverloadTests`).
 - Tests over real HTTP connections: a client that reads slowly receives every byte,
   a client that disconnects part-way leaves no evaluation holding a slot, and the
   server keeps serving after dropped connections (hokusai#126).
