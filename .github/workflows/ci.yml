@@ -13,11 +13,17 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Cost (hokusai#137): nothing is run twice. A draft pull request skips the build jobs until it is
+# marked ready, and a ready one runs Linux only. macOS (the dearest runner, and the one that waits
+# for a runner) runs after the merge to main, on a tag, on the weekly schedule and by hand.
+# The one required check is `CI complete`: a skipped job counts as passing.
+
 # Hokusai needs libvips 8.16+ and Cairo with PDF support. Linux builds libvips
 # with the script Hokusai itself uses, so both packages test the same native
 # baseline. Vapor is the released 4.x line from Package.swift.
 jobs:
   linux:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: Linux (Swift 6.4)
     runs-on: ubuntu-latest
     container: swift:6.4-noble
@@ -50,6 +56,13 @@ jobs:
           curl -fsSL "https://raw.githubusercontent.com/ivantokar/hokusai/${HOKUSAI_REF}/.github/scripts/install-libvips.sh" -o /tmp/install-libvips.sh
           bash /tmp/install-libvips.sh 8.18.7 "$VIPS_PREFIX"
 
+      - name: Restore SwiftPM build products
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-linux-${{ hashFiles('Package.swift') }}
+          restore-keys: spm-linux-
+
       - name: Build
         run: swift build --build-tests
 
@@ -62,6 +75,7 @@ jobs:
         run: HOKUSAI_OVERLOAD_TESTS=1 swift test --filter OverloadTests
 
   macos:
+    if: github.event_name != 'pull_request'
     name: macOS (Swift 6.4, Homebrew libvips)
     runs-on: macos-26
     steps:
@@ -80,6 +94,13 @@ jobs:
       - name: Install libvips and Cairo PDF support
         run: brew install vips cairo pkg-config
 
+      - name: Restore SwiftPM build products
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-macos-${{ hashFiles('Package.swift') }}
+          restore-keys: spm-macos-
+
       - name: Build
         run: swift build --build-tests
 
@@ -90,3 +111,17 @@ jobs:
       # run in a process of their own; `swift test` above skips them.
       - name: Overload tests
         run: HOKUSAI_OVERLOAD_TESTS=1 swift test --filter OverloadTests
+
+  # The one required check. Only success and skipped pass; an "abandoned" job (no runner came)
+  # must not count as green.
+  complete:
+    name: CI complete
+    if: always()
+    needs: [linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "linux=${{ needs.linux.result }} macos=${{ needs.macos.result }}"
+          for result in "${{ needs.linux.result }}" "${{ needs.macos.result }}"; do
+            case "$result" in success|skipped) ;; *) echo "not green: $result"; exit 1 ;; esac
+          done
