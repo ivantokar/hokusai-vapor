@@ -63,7 +63,18 @@ curl -X POST http://localhost:8080/resize \
   -o output.webp
 ```
 
-`hokusaiImage(options:maximumSize:)` collects the body, never beyond `maximumSize` (20 MiB by default): a declared `Content-Length` over the limit is rejected before any byte is read, and a body without one is rejected as soon as it grows past it. Both give `413`, and an empty body gives `400`. Hokusai's own decode limits go in `options`. Vapor's `defaultMaxBodySize` also applies to the route; set it at least as high as `maximumSize`.
+`hokusaiImage(options:maximumSize:memoryLimit:spoolDirectory:)` reads the body as it arrives, never beyond `maximumSize` (20 MiB by default): a declared `Content-Length` over the limit is rejected before any byte is read, and a body without one is rejected as soon as it grows past it. Both give `413`, and an empty body gives `400`. Hokusai's own decode limits go in `options`. Vapor's `defaultMaxBodySize` also applies to the route; set it at least as high as `maximumSize`.
+
+A small upload stays in memory. One larger than `memoryLimit` (1 MiB by default) moves to a private temporary file (`Hokusai(spooling:)`), so the encoded upload takes at most `memoryLimit` plus one chunk of memory however large `maximumSize` is. The pipeline owns the file and removes it when the last copy of the pipeline is released; a process that dies first leaves `hokusai-upload-*` files in `spoolDirectory` (the system temporary directory by default), which a server can sweep at start. Register the route with `body: .stream` so the body arrives in pieces:
+
+```swift
+app.on(.POST, "resize", body: .stream) { req in
+    try await req.hokusaiImage(maximumSize: 200 * 1024 * 1024)
+        .resize(width: 800).webp().response()
+}
+```
+
+This bounds the memory of the encoded upload; decoding is bounded separately by `InputLimits.maxPixels`.
 
 ## Multipart upload
 

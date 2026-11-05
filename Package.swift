@@ -14,7 +14,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
-        .package(url: "https://github.com/ivantokar/hokusai.git", from: "2.0.0"),
+        .package(url: "https://github.com/ivantokar/hokusai.git", from: "2.2.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
     ],
     targets: [
