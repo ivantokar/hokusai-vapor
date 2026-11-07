@@ -6,6 +6,10 @@
 
 Vapor integration for [Hokusai 2](https://github.com/ivantokar/hokusai): read an upload into an immutable image pipeline, transform it, and stream the encoded result as an HTTP response with backpressure.
 
+**Documentation: <https://ivantokar.com/oss/hokusai/integrations/vapor-service/>** (a complete Vapor service) · [all Hokusai documentation](https://ivantokar.com/oss/hokusai/) · [Українською](https://ivantokar.com/oss/hokusai/uk/integrations/vapor-service/)
+
+This package is a thin adapter. It connects Vapor to the [Hokusai](https://github.com/ivantokar/hokusai) core library, which does the image processing; if you are not using Vapor, you only need the core. Sibling adapter: [Hokusai Hummingbird](https://github.com/ivantokar/hokusai-hummingbird).
+
 ## Requirements
 
 - Swift 6.0+ and Vapor 4.
@@ -151,5 +155,7 @@ try ImageProcessingRoutes.register(to: app.grouped("api", "images"))
 
 ## Related projects
 
+- [Documentation](https://ivantokar.com/oss/hokusai/)
 - [Hokusai](https://github.com/ivantokar/hokusai)
+- [Hokusai Hummingbird](https://github.com/ivantokar/hokusai-hummingbird)
 - [Archived example application](https://github.com/ivantokar/hokusai-vapor-example)
