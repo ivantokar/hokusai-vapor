@@ -156,6 +156,7 @@ try ImageProcessingRoutes.register(to: app.grouped("api", "images"))
 ## Related projects
 
 - [Documentation](https://ivantokar.com/oss/hokusai/)
+- [Examples](https://github.com/ivantokar/hokusai-examples): a web playground on Vapor and Hummingbird, and a macOS playground
 - [Hokusai](https://github.com/ivantokar/hokusai)
 - [Hokusai Hummingbird](https://github.com/ivantokar/hokusai-hummingbird)
-- [Archived example application](https://github.com/ivantokar/hokusai-vapor-example)
+- [Archived example application](https://github.com/ivantokar/hokusai-vapor-example) (superseded by Examples)
