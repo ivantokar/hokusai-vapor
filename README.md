@@ -10,10 +10,14 @@ Vapor integration for [Hokusai 2](https://github.com/ivantokar/hokusai): read an
 
 This package is a thin adapter. It connects Vapor to the [Hokusai](https://github.com/ivantokar/hokusai) core library, which does the image processing; if you are not using Vapor, you only need the core. Sibling adapter: [Hokusai Hummingbird](https://github.com/ivantokar/hokusai-hummingbird).
 
+## Contents
+
+[Requirements](#requirements) · [Installation](#installation) · [Configure at startup](#configure-at-startup) · [Raw request body](#raw-request-body) · [Multipart upload](#multipart-upload) · [Text and metadata](#text-and-metadata) · [Responses](#responses) · [Errors](#errors) · [Included routes](#included-routes) · [Related projects](#related-projects)
+
 ## Requirements
 
 - Swift 6.0+ and Vapor 4.
-- Hokusai 2.0+, which needs libvips 8.16+ and Cairo with PDF support.
+- Hokusai 2.2+, which needs libvips 8.16+ and Cairo with PDF support. This package depends on the core `Hokusai` and `HokusaiNIO` products, so SwiftPM resolves them for you.
 
 ```bash
 # macOS
@@ -120,7 +124,7 @@ try await image.pdf().response()
 
 The body is written as it is encoded, so a response can start before the image is complete and a slow client slows encoding down instead of growing memory. When the client disconnects Vapor cancels the request task, which stops the evaluation. Before the response is committed the source header is read, so a missing or unreadable image becomes a `4xx` instead of a broken `200`; a failure after the first byte can only end the stream early.
 
-PDF output is a Cairo-backed PDF containing Hokusai's evaluated raster page. It does not preserve selectable vector text; see [Hokusai issue #13](https://github.com/ivantokar/hokusai/issues/13).
+`pdf()` responds with a Cairo-backed PDF containing Hokusai's evaluated raster page, so text drawn into the pipeline is not selectable. For selectable text and vector content build a document with the core's `HokusaiPDF` product and return its `data()` yourself; see [vector PDF documents](https://ivantokar.com/oss/hokusai/pdf/vector/).
 
 ## Errors
 
@@ -155,8 +159,11 @@ try ImageProcessingRoutes.register(to: app.grouped("api", "images"))
 
 ## Related projects
 
-- [Documentation](https://ivantokar.com/oss/hokusai/)
-- [Examples](https://github.com/ivantokar/hokusai-examples): a web playground on Vapor and Hummingbird, and a macOS playground
-- [Hokusai](https://github.com/ivantokar/hokusai)
-- [Hokusai Hummingbird](https://github.com/ivantokar/hokusai-hummingbird)
-- [Archived example application](https://github.com/ivantokar/hokusai-vapor-example) (superseded by Examples)
+- [Hokusai](https://github.com/ivantokar/hokusai): the core library this adapter connects to
+- [Hokusai Hummingbird](https://github.com/ivantokar/hokusai-hummingbird): the sibling adapter for Hummingbird
+- [Hokusai examples](https://github.com/ivantokar/hokusai-examples): a web playground on Vapor and Hummingbird with a minimal upload → resize → response route in each, and a macOS playground
+- [Documentation](https://ivantokar.com/oss/hokusai/) · [Vapor service guide](https://ivantokar.com/oss/hokusai/integrations/vapor-service/) · [source of the docs](https://github.com/ivantokar/hokusai-docs)
+
+## Contributing and license
+
+Issues and pull requests are welcome; the process is described in the core repository's [CONTRIBUTING.md](https://github.com/ivantokar/hokusai/blob/main/CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md). MIT, see [LICENSE](LICENSE).
