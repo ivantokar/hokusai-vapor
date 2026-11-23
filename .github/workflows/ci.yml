@@ -92,7 +92,10 @@ jobs:
           echo "$HOME/.swiftly/bin" >> "$GITHUB_PATH"
 
       - name: Install libvips and Cairo PDF support
-        run: brew install vips cairo pkg-config
+        run: |
+          brew install vips cairo pkg-config
+          # vips requires libarchive, which Homebrew keeps keg-only, so pkg-config cannot resolve vips without it.
+          echo "PKG_CONFIG_PATH=$(brew --prefix libarchive)/lib/pkgconfig" >> "$GITHUB_ENV"
 
       - name: Restore SwiftPM build products
         uses: actions/cache@v4
